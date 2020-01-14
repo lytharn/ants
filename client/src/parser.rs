@@ -16,6 +16,27 @@ pub struct GameConfig {
 	player_seed: i64,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Position {
+	row: i32,
+	col: i32,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Player {
+	id: i32,
+	pos: Position,
+}
+
+#[derive(Debug)]
+pub struct TurnInfo {
+	water: Vec<Position>, // Sent once
+	food: Vec<Position>,
+	ant_hill: Vec<Player>,
+	ant: Vec<Player>,
+	dead_ant: Vec<Player>,
+}
+
 pub fn extract_game_config<T: AsRef<str>>(
 	input: &mut impl Iterator<Item = T>,
 ) -> Result<GameConfig, Error> {
@@ -85,18 +106,74 @@ pub fn extract_game_config<T: AsRef<str>>(
 	}
 }
 
+fn extract_turn_info<T: AsRef<str>>(input: &mut impl Iterator<Item = T>) -> TurnInfo {
+	let mut water: Vec<Position> = Vec::new();
+	let mut food: Vec<Position> = Vec::new();
+	let mut ant: Vec<Player> = Vec::new();
+	let mut ant_hill: Vec<Player> = Vec::new();
+	let mut dead_ant: Vec<Player> = Vec::new();
+
+	for line in input {
+		let mut l = line.as_ref().split_whitespace();
+		let parameter = (l.next(), l.next(), l.next(), l.next());
+		match parameter {
+			(Some("w"), Some(row), Some(col), _) => parse_position(row, col)
+				.iter()
+				.for_each(|pos| water.push(*pos)),
+			(Some("f"), Some(row), Some(col), _) => parse_position(row, col)
+				.iter()
+				.for_each(|pos| food.push(*pos)),
+			(Some("a"), Some(row), Some(col), Some(id)) => parse_player(row, col, id)
+				.iter()
+				.for_each(|player| ant.push(*player)),
+			(Some("h"), Some(row), Some(col), Some(id)) => parse_player(row, col, id)
+				.iter()
+				.for_each(|player| ant_hill.push(*player)),
+			(Some("d"), Some(row), Some(col), Some(id)) => parse_player(row, col, id)
+				.iter()
+				.for_each(|player| dead_ant.push(*player)),
+			(Some("go"), _, _, _) => break,
+			_ => (),
+		}
+	}
+
+	TurnInfo {
+		water,
+		food,
+		ant,
+		ant_hill,
+		dead_ant,
+	}
+}
+
+fn parse_player(row: &str, col: &str, id: &str) -> Option<Player> {
+	let id_pos = (id.parse(), parse_position(row, col));
+	match id_pos {
+		(Ok(id), Some(pos)) => Some(Player { id, pos }),
+		_ => None,
+	}
+}
+
+fn parse_position(row: &str, col: &str) -> Option<Position> {
+	let row_col = (row.parse().ok(), col.parse().ok());
+	match row_col {
+		(Some(row), Some(col)) => Some(Position { row, col }),
+		_ => None,
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 
 	struct Setup {
-		input: Vec<&'static str>,
+		game_config_input: Vec<&'static str>,
 	}
 
 	impl Setup {
 		fn new() -> Self {
 			Self {
-				input: vec![
+				game_config_input: vec![
 					"loadtime 3000",
 					"turntime 1000",
 					"rows 20",
@@ -116,7 +193,7 @@ mod tests {
 	fn given_correct_input_when_extract_game_config_then_return_game_config() {
 		let setup = Setup::new();
 
-		let config = extract_game_config(&mut setup.input.iter()).unwrap();
+		let config = extract_game_config(&mut setup.game_config_input.iter()).unwrap();
 
 		assert_eq!(config.load_time, 3000);
 		assert_eq!(config.turn_time, 1000);
@@ -145,7 +222,7 @@ mod tests {
         #[test]
         fn $name() {
 		let setup = Setup::new();
-		let mut iter = setup.input.iter().filter(|&&l| l.contains($value));
+		let mut iter = setup.game_config_input.iter().filter(|&&l| l.contains($value));
 
 		let result = extract_game_config(&mut iter).unwrap_err();
 
@@ -172,7 +249,7 @@ mod tests {
         #[test]
         fn $name() {
 		let setup = Setup::new();
-		let mut iter = setup.input.iter().map(|l| {
+		let mut iter = setup.game_config_input.iter().map(|l| {
 			let mut type_value = l.split_whitespace();
 			let parameter_type = type_value.next().unwrap();
 			if parameter_type == $value {
@@ -199,5 +276,52 @@ mod tests {
 		given_input_with_invalid_parameter_value_viewradius2_when_extract_game_config_then_return_error: "viewradius2",
 		given_input_with_invalid_parameter_value_spawnradius2_when_extract_game_config_then_return_error: "spawnradius2",
 		given_input_with_invalid_parameter_value_player_seed_when_extract_game_config_then_return_error: "player_seed",
+	}
+
+	fn create_player(id: i32, row: i32, col: i32) -> Player {
+		Player {
+			id,
+			pos: Position { row, col },
+		}
+	}
+
+	#[test]
+	fn given_correct_input_when_extract_turn_info_then_return_turn_info() {
+		let input = vec![
+			"f 7 4",
+			"f 8 5",
+			"w 7 6",
+			"w 9 7",
+			"a 10 9 0",
+			"a 11 10 1",
+			"h 7 12 1",
+			"h 5 4 0",
+			"d 14 13 0",
+			"d 15 12 1",
+			"go",
+		];
+
+		let turn_info = extract_turn_info(&mut input.iter());
+
+		assert_eq!(turn_info.food[0], Position { row: 7, col: 4 });
+		assert_eq!(turn_info.food[1], Position { row: 8, col: 5 });
+		assert_eq!(turn_info.water[0], Position { row: 7, col: 6 });
+		assert_eq!(turn_info.water[1], Position { row: 9, col: 7 });
+		assert_eq!(turn_info.ant[0], create_player(0, 10, 9));
+		assert_eq!(turn_info.ant[1], create_player(1, 11, 10));
+		assert_eq!(turn_info.ant_hill[0], create_player(1, 7, 12));
+		assert_eq!(turn_info.ant_hill[1], create_player(0, 5, 4));
+		assert_eq!(turn_info.dead_ant[0], create_player(0, 14, 13));
+		assert_eq!(turn_info.dead_ant[1], create_player(1, 15, 12));
+	}
+
+	#[test]
+	fn given_input_when_extract_turn_info_then_read_iterator_up_to_go_string() {
+		let input = vec!["before go", "go", "after go"];
+		let mut iter = input.iter();
+
+		let _ = extract_turn_info(&mut iter);
+
+		assert_eq!(Some(&"after go"), iter.next());
 	}
 }

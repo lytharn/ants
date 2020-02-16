@@ -1,6 +1,7 @@
 #[derive(Debug, PartialEq)]
 pub enum Error {
 	CannotParseGameConfig,
+	CannotParseEndInfo,
 }
 
 #[derive(Debug)]
@@ -35,6 +36,12 @@ pub struct TurnInfo {
 	ant_hill: Vec<Player>,
 	ant: Vec<Player>,
 	dead_ant: Vec<Player>,
+}
+
+#[derive(Debug)]
+pub struct EndInfo {
+	scores: Vec<i32>,
+	turn_info: TurnInfo,
 }
 
 pub fn extract_game_config<T: AsRef<str>>(
@@ -106,7 +113,7 @@ pub fn extract_game_config<T: AsRef<str>>(
 	}
 }
 
-fn extract_turn_info<T: AsRef<str>>(input: &mut impl Iterator<Item = T>) -> TurnInfo {
+pub fn extract_turn_info<T: AsRef<str>>(input: &mut impl Iterator<Item = T>) -> TurnInfo {
 	let mut water: Vec<Position> = Vec::new();
 	let mut food: Vec<Position> = Vec::new();
 	let mut ant: Vec<Player> = Vec::new();
@@ -146,6 +153,40 @@ fn extract_turn_info<T: AsRef<str>>(input: &mut impl Iterator<Item = T>) -> Turn
 	}
 }
 
+pub fn extract_end_info<T: AsRef<str>>(
+	input: &mut impl Iterator<Item = T>,
+) -> Result<EndInfo, Error> {
+	let mut no_of_players: Option<usize> = None;
+	let mut scores: Option<Vec<i32>> = None;
+
+	for line in input.by_ref() {
+		let mut l = line.as_ref().split_whitespace();
+		let parameter = (l.next(), l.next());
+		match parameter {
+			(Some("players"), Some(players)) => no_of_players = players.parse().ok(),
+			(Some("score"), first_score) => {
+				scores = Some(
+					first_score
+						.into_iter()
+						.chain(l)
+						.filter_map(|p| p.parse().ok())
+						.collect(),
+				);
+				break;
+			}
+			_ => (),
+		}
+	}
+
+	let turn_info = extract_turn_info(input);
+	match (no_of_players, scores) {
+		(Some(no_of_players), Some(scores)) if no_of_players == scores.len() => {
+			Ok(EndInfo { scores, turn_info })
+		}
+		_ => Err(Error::CannotParseEndInfo),
+	}
+}
+
 fn parse_player(row: &str, col: &str, id: &str) -> Option<Player> {
 	let id_pos = (id.parse(), parse_position(row, col));
 	match id_pos {
@@ -168,6 +209,7 @@ mod tests {
 
 	struct Setup {
 		game_config_input: Vec<&'static str>,
+		turn_info_input: Vec<&'static str>,
 	}
 
 	impl Setup {
@@ -184,6 +226,19 @@ mod tests {
 					"spawnradius2 1",
 					"player_seed 42",
 					"ready",
+				],
+				turn_info_input: vec![
+					"f 7 4",
+					"f 8 5",
+					"w 7 6",
+					"w 9 7",
+					"a 10 9 0",
+					"a 11 10 1",
+					"h 7 12 1",
+					"h 5 4 0",
+					"d 14 13 0",
+					"d 15 12 1",
+					"go",
 				],
 			}
 		}
@@ -323,5 +378,76 @@ mod tests {
 		let _ = extract_turn_info(&mut iter);
 
 		assert_eq!(Some(&"after go"), iter.next());
+	}
+
+	#[test]
+	fn given_correct_input_when_extract_end_info_then_return_end_info() {
+		let setup = Setup::new();
+		let input = vec!["players 4", "score 3 5 7 0"];
+		let mut input = input.iter().chain(setup.turn_info_input.iter());
+
+		let end_info = extract_end_info(&mut input).unwrap();
+
+		assert_eq!(end_info.scores.len(), 4);
+		assert_eq!(end_info.scores[0], 3);
+		assert_eq!(end_info.scores[1], 5);
+		assert_eq!(end_info.scores[2], 7);
+		assert_eq!(end_info.scores[3], 0);
+
+		let turn_info = end_info.turn_info;
+		assert_eq!(turn_info.food[0], Position { row: 7, col: 4 });
+		assert_eq!(turn_info.food[1], Position { row: 8, col: 5 });
+		assert_eq!(turn_info.water[0], Position { row: 7, col: 6 });
+		assert_eq!(turn_info.water[1], Position { row: 9, col: 7 });
+		assert_eq!(turn_info.ant[0], create_player(0, 10, 9));
+		assert_eq!(turn_info.ant[1], create_player(1, 11, 10));
+		assert_eq!(turn_info.ant_hill[0], create_player(1, 7, 12));
+		assert_eq!(turn_info.ant_hill[1], create_player(0, 5, 4));
+		assert_eq!(turn_info.dead_ant[0], create_player(0, 14, 13));
+		assert_eq!(turn_info.dead_ant[1], create_player(1, 15, 12));
+	}
+
+	#[test]
+	fn given_input_with_missing_player_parameter_when_extract_end_info_then_return_error() {
+		let setup = Setup::new();
+		let input = vec!["score 3 5 7 0"];
+		let mut input = input.iter().chain(setup.turn_info_input.iter());
+
+		let result = extract_end_info(&mut input).unwrap_err();
+
+		assert_eq!(Error::CannotParseEndInfo, result);
+	}
+
+	#[test]
+	fn given_input_with_missing_score_parameter_when_extract_end_info_then_return_error() {
+		let setup = Setup::new();
+		let input = vec!["players 4"];
+		let mut input = input.iter().chain(setup.turn_info_input.iter());
+
+		let result = extract_end_info(&mut input).unwrap_err();
+
+		assert_eq!(Error::CannotParseEndInfo, result);
+	}
+
+	#[test]
+	fn given_input_with_invalid_parameter_value_player_when_extract_end_info_then_return_error() {
+		let setup = Setup::new();
+		let input = vec!["players INVALID_VALUE", "score 3 5 7 0"];
+		let mut input = input.iter().chain(setup.turn_info_input.iter());
+
+		let result = extract_end_info(&mut input).unwrap_err();
+
+		assert_eq!(Error::CannotParseEndInfo, result);
+	}
+
+	#[test]
+	fn given_input_with_invalid_parameter_value_score_when_extract_end_info_then_return_error() {
+		let setup = Setup::new();
+		let input = vec!["players 4", "score 3 5 INVALID_VALUE 0"];
+		let mut input = input.iter().chain(setup.turn_info_input.iter());
+
+		let result = extract_end_info(&mut input).unwrap_err();
+
+		assert_eq!(Error::CannotParseEndInfo, result);
 	}
 }

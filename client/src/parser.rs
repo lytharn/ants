@@ -61,56 +61,32 @@ pub fn extract_game_config<T: AsRef<str>>(
 		let mut type_value = line.as_ref().split_whitespace();
 		let parameter_type = type_value.next();
 		let parameter_value = type_value.next();
-		match parameter_type {
-			Some("loadtime") => load_time = parameter_value.and_then(|v| v.parse().ok()),
-			Some("turntime") => turn_time = parameter_value.and_then(|v| v.parse().ok()),
-			Some("rows") => rows = parameter_value.and_then(|v| v.parse().ok()),
-			Some("cols") => cols = parameter_value.and_then(|v| v.parse().ok()),
-			Some("turns") => turns = parameter_value.and_then(|v| v.parse().ok()),
-			Some("viewradius2") => view_radius2 = parameter_value.and_then(|v| v.parse().ok()),
-			Some("attackradius2") => attack_radius2 = parameter_value.and_then(|v| v.parse().ok()),
-			Some("spawnradius2") => {
-				food_gathering_radius2 = parameter_value.and_then(|v| v.parse().ok())
-			}
-			Some("player_seed") => player_seed = parameter_value.and_then(|v| v.parse().ok()),
-			Some("ready") => break,
+		match (parameter_type, parameter_value) {
+			(Some("loadtime"), Some(v)) => load_time = v.parse().ok(),
+			(Some("turntime"), Some(v)) => turn_time = v.parse().ok(),
+			(Some("rows"), Some(v)) => rows = v.parse().ok(),
+			(Some("cols"), Some(v)) => cols = v.parse().ok(),
+			(Some("turns"), Some(v)) => turns = v.parse().ok(),
+			(Some("viewradius2"), Some(v)) => view_radius2 = v.parse().ok(),
+			(Some("attackradius2"), Some(v)) => attack_radius2 = v.parse().ok(),
+			(Some("spawnradius2"), Some(v)) => food_gathering_radius2 = v.parse().ok(),
+			(Some("player_seed"), Some(v)) => player_seed = v.parse().ok(),
+			(Some("ready"), _) => break,
 			_ => (),
 		}
 	}
-	match (
-		load_time,
-		turn_time,
-		rows,
-		cols,
-		turns,
-		view_radius2,
-		attack_radius2,
-		food_gathering_radius2,
-		player_seed,
-	) {
-		(
-			Some(load_time),
-			Some(turn_time),
-			Some(rows),
-			Some(cols),
-			Some(turns),
-			Some(view_radius2),
-			Some(attack_radius2),
-			Some(food_gathering_radius2),
-			Some(player_seed),
-		) => Ok(GameConfig {
-			load_time,
-			turn_time,
-			rows,
-			cols,
-			turns,
-			view_radius2,
-			attack_radius2,
-			food_gathering_radius2,
-			player_seed,
-		}),
-		_ => Err(Error::CannotParseGameConfig),
-	}
+
+	Ok(GameConfig {
+		load_time: load_time.ok_or(Error::CannotParseGameConfig)?,
+		turn_time: turn_time.ok_or(Error::CannotParseGameConfig)?,
+		rows: rows.ok_or(Error::CannotParseGameConfig)?,
+		cols: cols.ok_or(Error::CannotParseGameConfig)?,
+		turns: turns.ok_or(Error::CannotParseGameConfig)?,
+		view_radius2: view_radius2.ok_or(Error::CannotParseGameConfig)?,
+		attack_radius2: attack_radius2.ok_or(Error::CannotParseGameConfig)?,
+		food_gathering_radius2: food_gathering_radius2.ok_or(Error::CannotParseGameConfig)?,
+		player_seed: player_seed.ok_or(Error::CannotParseGameConfig)?,
+	})
 }
 
 pub fn extract_turn_info<T: AsRef<str>>(input: &mut impl Iterator<Item = T>) -> TurnInfo {

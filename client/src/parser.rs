@@ -101,20 +101,20 @@ pub fn extract_turn_info<T: AsRef<str>>(input: &mut impl Iterator<Item = T>) -> 
 		let parameter = (l.next(), l.next(), l.next(), l.next());
 		match parameter {
 			(Some("w"), Some(row), Some(col), _) => parse_position(row, col)
-				.iter()
-				.for_each(|pos| water.push(*pos)),
+				.into_iter()
+				.for_each(|pos| water.push(pos)),
 			(Some("f"), Some(row), Some(col), _) => parse_position(row, col)
-				.iter()
-				.for_each(|pos| food.push(*pos)),
+				.into_iter()
+				.for_each(|pos| food.push(pos)),
 			(Some("a"), Some(row), Some(col), Some(id)) => parse_player(row, col, id)
-				.iter()
-				.for_each(|player| ant.push(*player)),
+				.into_iter()
+				.for_each(|player| ant.push(player)),
 			(Some("h"), Some(row), Some(col), Some(id)) => parse_player(row, col, id)
-				.iter()
-				.for_each(|player| ant_hill.push(*player)),
+				.into_iter()
+				.for_each(|player| ant_hill.push(player)),
 			(Some("d"), Some(row), Some(col), Some(id)) => parse_player(row, col, id)
-				.iter()
-				.for_each(|player| dead_ant.push(*player)),
+				.into_iter()
+				.for_each(|player| dead_ant.push(player)),
 			(Some("go"), _, _, _) => break,
 			_ => (),
 		}

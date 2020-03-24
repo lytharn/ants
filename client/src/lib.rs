@@ -20,12 +20,12 @@ pub fn run<T: AsRef<str>>(
 	client.set_up(parser::extract_game_config(&mut input));
 	output("go");
 	while let Some(line) = input.next() {
-		match line.as_ref() {
-			"end" => client.tear_down(parser::extract_end_info(&mut input)),
-			_ => {
-				client.make_turn(parser::extract_turn_info(&mut input));
-				output("go")
-			}
+		if line.as_ref() == "end" {
+			client.tear_down(parser::extract_end_info(&mut input));
+			return;
+		} else if line.as_ref().starts_with("turn ") {
+			client.make_turn(parser::extract_turn_info(&mut input));
+			output("go");
 		}
 	}
 }
@@ -136,5 +136,56 @@ mod tests {
 		assert_matches!(calls[4], Callback::MakeTurn(_));
 		assert_matches!(&calls[5], Callback::Output(s) if s == "go");
 		assert_matches!(calls[6], Callback::TearDown(Ok(_)));
+	}
+
+	#[test]
+	fn given_input_after_end_input_when_run_then_ignore_input_after_end_input() {
+		let callbacks = RefCell::new(vec![]);
+		let mut client = TestClient {
+			callbacks: &callbacks,
+		};
+		let setup = Setup::new();
+
+		run(
+			&mut client,
+			setup
+				.config_input
+				.iter()
+				.chain(setup.end_input.iter())
+				.chain(iter::once(&"turn 1"))
+				.chain(setup.turn_input.iter()),
+			|_| {},
+		);
+
+		let make_turn_called = callbacks.borrow().iter().any(|c| {
+			if let Callback::MakeTurn(_) = c {
+				true
+			} else {
+				false
+			}
+		});
+		assert_eq!(make_turn_called, false);
+	}
+
+	#[test]
+	fn given_invalid_input_when_run_then_ignore_invalid_input() {
+		let callbacks = RefCell::new(vec![]);
+		let mut client = TestClient {
+			callbacks: &callbacks,
+		};
+		let setup = Setup::new();
+
+		run(
+			&mut client,
+			iter::once(&"INVALID INPUT")
+				.chain(setup.config_input.iter())
+				.chain(iter::once(&"INVALID INPUT"))
+				.chain(setup.end_input.iter()),
+			|_| {},
+		);
+
+		let calls = callbacks.borrow();
+		assert_matches!(calls[0], Callback::SetUp(Ok(_)));
+		assert_matches!(calls[1], Callback::TearDown(Ok(_)));
 	}
 }

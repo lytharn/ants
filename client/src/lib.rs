@@ -130,20 +130,16 @@ mod tests {
 			],
 		};
 		let setup = Setup::new();
+		let input = setup
+			.config_input
+			.iter()
+			.chain(iter::once(&"turn 1"))
+			.chain(setup.turn_input.iter())
+			.chain(iter::once(&"turn 2"))
+			.chain(setup.turn_input.iter())
+			.chain(setup.end_input.iter());
 
-		run(
-			&mut client,
-			setup
-				.config_input
-				.iter()
-				.chain(iter::once(&"turn 1"))
-				.chain(setup.turn_input.iter())
-				.chain(iter::once(&"turn 2"))
-				.chain(setup.turn_input.iter())
-				.chain(setup.end_input.iter()),
-			save_output,
-		)
-		.unwrap();
+		run(&mut client, input, save_output).unwrap();
 
 		let calls = callbacks.borrow();
 		let mut calls = calls.iter();
@@ -168,8 +164,9 @@ mod tests {
 			orders: vec![],
 		};
 		let setup = Setup::new();
+		let input = setup.config_input.iter().take(2);
 
-		let result = run(&mut client, setup.config_input.iter().take(2), |_| {});
+		let result = run(&mut client, input, |_| {});
 
 		assert_matches!(result, Err(_));
 	}
@@ -182,15 +179,12 @@ mod tests {
 			orders: vec![],
 		};
 		let setup = Setup::new();
+		let input = setup
+			.config_input
+			.iter()
+			.chain(setup.end_input.iter().take(2));
 
-		let result = run(
-			&mut client,
-			setup
-				.config_input
-				.iter()
-				.chain(setup.end_input.iter().take(2)),
-			|_| {},
-		);
+		let result = run(&mut client, input, |_| {});
 
 		assert_matches!(result, Err(_));
 	}
@@ -203,18 +197,14 @@ mod tests {
 			orders: vec![],
 		};
 		let setup = Setup::new();
+		let input = setup
+			.config_input
+			.iter()
+			.chain(setup.end_input.iter())
+			.chain(iter::once(&"turn 1"))
+			.chain(setup.turn_input.iter());
 
-		run(
-			&mut client,
-			setup
-				.config_input
-				.iter()
-				.chain(setup.end_input.iter())
-				.chain(iter::once(&"turn 1"))
-				.chain(setup.turn_input.iter()),
-			|_| {},
-		)
-		.unwrap();
+		run(&mut client, input, |_| {}).unwrap();
 
 		let make_turn_called = callbacks.borrow().iter().any(|c| {
 			if let Callback::MakeTurn(_) = c {
@@ -234,16 +224,12 @@ mod tests {
 			orders: vec![],
 		};
 		let setup = Setup::new();
+		let input = iter::once(&"INVALID INPUT")
+			.chain(setup.config_input.iter())
+			.chain(iter::once(&"INVALID INPUT"))
+			.chain(setup.end_input.iter());
 
-		run(
-			&mut client,
-			iter::once(&"INVALID INPUT")
-				.chain(setup.config_input.iter())
-				.chain(iter::once(&"INVALID INPUT"))
-				.chain(setup.end_input.iter()),
-			|_| {},
-		)
-		.unwrap();
+		run(&mut client, input, |_| {}).unwrap();
 
 		let calls = callbacks.borrow();
 		assert_matches!(calls[0], Callback::SetUp(_));

@@ -86,11 +86,11 @@ pub fn extract_game_config<T: AsRef<str>>(
 }
 
 pub fn extract_turn_info<T: AsRef<str>>(input: &mut impl Iterator<Item = T>) -> TurnInfo {
-	let mut water: Vec<Position> = Vec::new();
-	let mut food: Vec<Position> = Vec::new();
-	let mut ant: Vec<Player> = Vec::new();
-	let mut ant_hill: Vec<Player> = Vec::new();
-	let mut dead_ant: Vec<Player> = Vec::new();
+	let mut water: Vec<Position> = vec![];
+	let mut food: Vec<Position> = vec![];
+	let mut ant: Vec<Player> = vec![];
+	let mut ant_hill: Vec<Player> = vec![];
+	let mut dead_ant: Vec<Player> = vec![];
 
 	for line in input {
 		let mut l = line.as_ref().split_whitespace();

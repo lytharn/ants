@@ -23,7 +23,7 @@ impl Order {
 	}
 }
 
-pub fn output_orders(orders: Vec<Order>, output: &impl Fn(&str) -> ()) {
+pub fn output_orders(orders: Vec<Order>, output: &impl Fn(&str)) {
 	orders.iter().for_each(|o| {
 		output(
 			format!(

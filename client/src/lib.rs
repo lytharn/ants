@@ -1,13 +1,22 @@
 mod parser;
+mod unparser;
 
 pub use parser::EndInfo;
 pub use parser::Error;
 pub use parser::GameConfig;
 pub use parser::TurnInfo;
+pub use unparser::Direction;
+pub use unparser::Order;
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Position {
+	row: i32,
+	col: i32,
+}
 
 pub trait Client {
 	fn set_up(&mut self, config: Result<GameConfig, Error>);
-	fn make_turn(&mut self, turn_info: TurnInfo);
+	fn make_turn(&mut self, turn_info: TurnInfo) -> Vec<Order>;
 	fn tear_down(&mut self, end_info: Result<EndInfo, Error>);
 }
 
@@ -24,8 +33,8 @@ pub fn run<T: AsRef<str>>(
 			client.tear_down(parser::extract_end_info(&mut input));
 			return;
 		} else if line.as_ref().starts_with("turn ") {
-			client.make_turn(parser::extract_turn_info(&mut input));
-			output("go");
+			let orders = client.make_turn(parser::extract_turn_info(&mut input));
+			unparser::output_orders(orders, &mut output);
 		}
 	}
 }
@@ -86,6 +95,7 @@ mod tests {
 
 	struct TestClient<'a> {
 		callbacks: &'a RefCell<Vec<Callback>>,
+		orders: Vec<Order>,
 	}
 
 	impl<'a> Client for TestClient<'a> {
@@ -93,10 +103,11 @@ mod tests {
 			self.callbacks.borrow_mut().push(Callback::SetUp(config));
 		}
 
-		fn make_turn(&mut self, turn_info: TurnInfo) {
+		fn make_turn(&mut self, turn_info: TurnInfo) -> Vec<Order> {
 			self.callbacks
 				.borrow_mut()
 				.push(Callback::MakeTurn(turn_info));
+			self.orders.clone()
 		}
 
 		fn tear_down(&mut self, end_info: Result<EndInfo, Error>) {
@@ -112,6 +123,10 @@ mod tests {
 		let save_output = |o: &str| callbacks.borrow_mut().push(Callback::Output(o.to_string()));
 		let mut client = TestClient {
 			callbacks: &callbacks,
+			orders: vec![
+				Order::new(12, 34, Direction::N),
+				Order::new(56, 78, Direction::W),
+			],
 		};
 		let setup = Setup::new();
 
@@ -129,13 +144,18 @@ mod tests {
 		);
 
 		let calls = callbacks.borrow();
-		assert_matches!(calls[0], Callback::SetUp(Ok(_)));
-		assert_matches!(&calls[1], Callback::Output(s) if s == "go");
-		assert_matches!(calls[2], Callback::MakeTurn(_));
-		assert_matches!(&calls[3], Callback::Output(s) if s == "go");
-		assert_matches!(calls[4], Callback::MakeTurn(_));
-		assert_matches!(&calls[5], Callback::Output(s) if s == "go");
-		assert_matches!(calls[6], Callback::TearDown(Ok(_)));
+		let mut calls = calls.iter();
+		assert_matches!(calls.next(), Some(Callback::SetUp(Ok(_))));
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
+		assert_matches!(calls.next(), Some(Callback::MakeTurn(_)));
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "12 34 N");
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "56 78 W");
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
+		assert_matches!(calls.next(), Some(Callback::MakeTurn(_)));
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "12 34 N");
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "56 78 W");
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
+		assert_matches!(calls.next(), Some(Callback::TearDown(Ok(_))));
 	}
 
 	#[test]
@@ -143,6 +163,7 @@ mod tests {
 		let callbacks = RefCell::new(vec![]);
 		let mut client = TestClient {
 			callbacks: &callbacks,
+			orders: vec![],
 		};
 		let setup = Setup::new();
 
@@ -172,6 +193,7 @@ mod tests {
 		let callbacks = RefCell::new(vec![]);
 		let mut client = TestClient {
 			callbacks: &callbacks,
+			orders: vec![],
 		};
 		let setup = Setup::new();
 

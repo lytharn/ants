@@ -1,3 +1,5 @@
+use super::Position;
+
 #[derive(Debug, PartialEq)]
 pub enum Error {
 	CannotParseGameConfig,
@@ -15,12 +17,6 @@ pub struct GameConfig {
 	attack_radius2: i32,
 	food_gathering_radius2: i32,
 	player_seed: i64,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Position {
-	row: i32,
-	col: i32,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

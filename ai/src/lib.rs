@@ -4,7 +4,9 @@ pub struct Agent {}
 
 impl Client for Agent {
 	fn set_up(&mut self, _config: Result<client::GameConfig, client::Error>) {}
-	fn make_turn(&mut self, _turn_info: client::TurnInfo) {}
+	fn make_turn(&mut self, _turn_info: client::TurnInfo) -> Vec<client::Order> {
+		vec![]
+	}
 	fn tear_down(&mut self, _end_info: Result<client::EndInfo, client::Error>) {}
 }
 

@@ -6,5 +6,5 @@ fn main() {
 	let stdin = io::stdin();
 	let stdin_iter = stdin.lock().lines().map(|l| l.unwrap());
 
-	client::run(&mut agent, stdin_iter, |output| print!("{}", output))
+	client::run(&mut agent, stdin_iter, |output| print!("{}", output)).unwrap();
 }

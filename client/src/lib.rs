@@ -15,28 +15,29 @@ pub struct Position {
 }
 
 pub trait Client {
-	fn set_up(&mut self, config: Result<GameConfig, Error>);
+	fn set_up(&mut self, config: GameConfig);
 	fn make_turn(&mut self, turn_info: TurnInfo) -> Vec<Order>;
-	fn tear_down(&mut self, end_info: Result<EndInfo, Error>);
+	fn tear_down(&mut self, end_info: EndInfo);
 }
 
 pub fn run<T: AsRef<str>>(
 	client: &mut impl Client,
 	input: impl Iterator<Item = T>,
 	output: impl Fn(&str),
-) {
+) -> Result<(), Error> {
 	let mut input = input.skip_while(|line| line.as_ref() != "turn 0");
-	client.set_up(parser::extract_game_config(&mut input));
+	client.set_up(parser::extract_game_config(&mut input)?);
 	output("go");
 	while let Some(line) = input.next() {
 		if line.as_ref() == "end" {
-			client.tear_down(parser::extract_end_info(&mut input));
-			return;
+			client.tear_down(parser::extract_end_info(&mut input)?);
+			break;
 		} else if line.as_ref().starts_with("turn ") {
 			let orders = client.make_turn(parser::extract_turn_info(&mut input));
 			unparser::output_orders(orders, &output);
 		}
 	}
+	Ok(())
 }
 
 #[cfg(test)]
@@ -87,9 +88,9 @@ mod tests {
 
 	#[derive(Debug)]
 	enum Callback {
-		SetUp(Result<GameConfig, Error>),
+		SetUp(GameConfig),
 		MakeTurn(TurnInfo),
-		TearDown(Result<EndInfo, Error>),
+		TearDown(EndInfo),
 		Output(String),
 	}
 
@@ -99,7 +100,7 @@ mod tests {
 	}
 
 	impl<'a> Client for TestClient<'a> {
-		fn set_up(&mut self, config: Result<GameConfig, Error>) {
+		fn set_up(&mut self, config: GameConfig) {
 			self.callbacks.borrow_mut().push(Callback::SetUp(config));
 		}
 
@@ -110,7 +111,7 @@ mod tests {
 			self.orders.clone()
 		}
 
-		fn tear_down(&mut self, end_info: Result<EndInfo, Error>) {
+		fn tear_down(&mut self, end_info: EndInfo) {
 			self.callbacks
 				.borrow_mut()
 				.push(Callback::TearDown(end_info));
@@ -141,11 +142,12 @@ mod tests {
 				.chain(setup.turn_input.iter())
 				.chain(setup.end_input.iter()),
 			save_output,
-		);
+		)
+		.unwrap();
 
 		let calls = callbacks.borrow();
 		let mut calls = calls.iter();
-		assert_matches!(calls.next(), Some(Callback::SetUp(Ok(_))));
+		assert_matches!(calls.next(), Some(Callback::SetUp(_)));
 		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
 		assert_matches!(calls.next(), Some(Callback::MakeTurn(_)));
 		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "12 34 N");
@@ -155,7 +157,42 @@ mod tests {
 		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "12 34 N");
 		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "56 78 W");
 		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
-		assert_matches!(calls.next(), Some(Callback::TearDown(Ok(_))));
+		assert_matches!(calls.next(), Some(Callback::TearDown(_)));
+	}
+
+	#[test]
+	fn given_invalid_set_up_input_when_run_then_return_error() {
+		let callbacks = RefCell::new(vec![]);
+		let mut client = TestClient {
+			callbacks: &callbacks,
+			orders: vec![],
+		};
+		let setup = Setup::new();
+
+		let result = run(&mut client, setup.config_input.iter().take(2), |_| {});
+
+		assert_matches!(result, Err(_));
+	}
+
+	#[test]
+	fn given_invalid_end_input_when_run_then_return_error() {
+		let callbacks = RefCell::new(vec![]);
+		let mut client = TestClient {
+			callbacks: &callbacks,
+			orders: vec![],
+		};
+		let setup = Setup::new();
+
+		let result = run(
+			&mut client,
+			setup
+				.config_input
+				.iter()
+				.chain(setup.end_input.iter().take(2)),
+			|_| {},
+		);
+
+		assert_matches!(result, Err(_));
 	}
 
 	#[test]
@@ -176,7 +213,8 @@ mod tests {
 				.chain(iter::once(&"turn 1"))
 				.chain(setup.turn_input.iter()),
 			|_| {},
-		);
+		)
+		.unwrap();
 
 		let make_turn_called = callbacks.borrow().iter().any(|c| {
 			if let Callback::MakeTurn(_) = c {
@@ -204,10 +242,11 @@ mod tests {
 				.chain(iter::once(&"INVALID INPUT"))
 				.chain(setup.end_input.iter()),
 			|_| {},
-		);
+		)
+		.unwrap();
 
 		let calls = callbacks.borrow();
-		assert_matches!(calls[0], Callback::SetUp(Ok(_)));
-		assert_matches!(calls[1], Callback::TearDown(Ok(_)));
+		assert_matches!(calls[0], Callback::SetUp(_));
+		assert_matches!(calls[1], Callback::TearDown(_));
 	}
 }

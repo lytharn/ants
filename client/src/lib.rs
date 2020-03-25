@@ -23,7 +23,7 @@ pub trait Client {
 pub fn run<T: AsRef<str>>(
 	client: &mut impl Client,
 	input: impl Iterator<Item = T>,
-	mut output: impl FnMut(&str) -> (),
+	output: impl Fn(&str) -> (),
 ) {
 	let mut input = input.skip_while(|line| line.as_ref() != "turn 0");
 	client.set_up(parser::extract_game_config(&mut input));
@@ -34,7 +34,7 @@ pub fn run<T: AsRef<str>>(
 			return;
 		} else if line.as_ref().starts_with("turn ") {
 			let orders = client.make_turn(parser::extract_turn_info(&mut input));
-			unparser::output_orders(orders, &mut output);
+			unparser::output_orders(orders, &output);
 		}
 	}
 }

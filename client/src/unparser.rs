@@ -23,7 +23,7 @@ impl Order {
 	}
 }
 
-pub fn output_orders(orders: Vec<Order>, output: &mut impl FnMut(&str) -> ()) {
+pub fn output_orders(orders: Vec<Order>, output: &impl Fn(&str) -> ()) {
 	orders.iter().for_each(|o| {
 		output(
 			format!(
@@ -50,6 +50,7 @@ fn unparse_direction(direction: Direction) -> char {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use std::cell::RefCell;
 
 	#[test]
 	fn given_orders_when_output_orders_then_return_orders_as_a_string() {
@@ -71,11 +72,12 @@ mod tests {
 				direction: Direction::W,
 			},
 		];
-		let mut outputs = Vec::new();
-		let mut save_output = |o: &str| outputs.push(o.to_string());
+		let outputs = RefCell::new(vec![]);
+		let save_output = |o: &str| outputs.borrow_mut().push(o.to_string());
 
-		output_orders(orders, &mut save_output);
+		output_orders(orders, &save_output);
 
+		let outputs = outputs.borrow();
 		assert_eq!(outputs[0].as_str(), "0 0 N");
 		assert_eq!(outputs[1].as_str(), "0 1 E");
 		assert_eq!(outputs[2].as_str(), "1 0 S");

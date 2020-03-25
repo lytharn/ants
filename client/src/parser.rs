@@ -21,17 +21,17 @@ pub struct GameConfig {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Player {
-	id: i32,
-	pos: Position,
+	pub id: i32,
+	pub pos: Position,
 }
 
 #[derive(Debug)]
 pub struct TurnInfo {
-	water: Vec<Position>, // Sent once
-	food: Vec<Position>,
-	ant_hill: Vec<Player>,
-	ant: Vec<Player>,
-	dead_ant: Vec<Player>,
+	pub water: Vec<Position>, // Sent once
+	pub food: Vec<Position>,
+	pub ant_hill: Vec<Player>,
+	pub ant: Vec<Player>,
+	pub dead_ant: Vec<Player>,
 }
 
 #[derive(Debug)]

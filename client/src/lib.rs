@@ -4,14 +4,15 @@ mod unparser;
 pub use parser::EndInfo;
 pub use parser::Error;
 pub use parser::GameConfig;
+pub use parser::Player;
 pub use parser::TurnInfo;
 pub use unparser::Direction;
 pub use unparser::Order;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Position {
-	row: i32,
-	col: i32,
+	pub row: i32,
+	pub col: i32,
 }
 
 pub trait Client {
@@ -146,12 +147,12 @@ mod tests {
 		assert_matches!(calls.next(), Some(Callback::SetUp(_)));
 		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
 		assert_matches!(calls.next(), Some(Callback::MakeTurn(_)));
-		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "12 34 N");
-		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "56 78 W");
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "o 12 34 N");
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "o 56 78 W");
 		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
 		assert_matches!(calls.next(), Some(Callback::MakeTurn(_)));
-		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "12 34 N");
-		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "56 78 W");
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "o 12 34 N");
+		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "o 56 78 W");
 		assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
 		assert_matches!(calls.next(), Some(Callback::TearDown(_)));
 	}

@@ -10,8 +10,8 @@ pub enum Direction {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Order {
-	pos: Position,
-	direction: Direction,
+	pub pos: Position,
+	pub direction: Direction,
 }
 
 impl Order {
@@ -27,7 +27,7 @@ pub fn output_orders(orders: Vec<Order>, output: &impl Fn(&str)) {
 	orders.iter().for_each(|o| {
 		output(
 			format!(
-				"{} {} {}",
+				"o {} {} {}",
 				o.pos.row.to_string(),
 				o.pos.col.to_string(),
 				unparse_direction(o.direction),
@@ -78,10 +78,10 @@ mod tests {
 		output_orders(orders, &save_output);
 
 		let outputs = outputs.borrow();
-		assert_eq!(outputs[0].as_str(), "0 0 N");
-		assert_eq!(outputs[1].as_str(), "0 1 E");
-		assert_eq!(outputs[2].as_str(), "1 0 S");
-		assert_eq!(outputs[3].as_str(), "42 32 W");
+		assert_eq!(outputs[0].as_str(), "o 0 0 N");
+		assert_eq!(outputs[1].as_str(), "o 0 1 E");
+		assert_eq!(outputs[2].as_str(), "o 1 0 S");
+		assert_eq!(outputs[3].as_str(), "o 42 32 W");
 		assert_eq!(outputs[4].as_str(), "go");
 	}
 }

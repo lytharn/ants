@@ -47,11 +47,19 @@ pub enum Turn {
     End(Result<EndInfo, Error>),
 }
 
-pub struct Parser<I> {
+pub struct Parser<T, I>
+where
+    T: AsRef<str>,
+    I: Iterator<Item = T>,
+{
     input: I,
 }
 
-impl<T: AsRef<str>, I: Iterator<Item = T>> Parser<I> {
+impl<T, I> Parser<T, I>
+where
+    T: AsRef<str>,
+    I: Iterator<Item = T>,
+{
     pub fn new(input: I) -> Self {
         Self { input }
     }

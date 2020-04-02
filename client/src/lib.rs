@@ -11,6 +11,7 @@ pub use unparser::Order;
 
 use parser::Parser;
 use parser::Turn;
+use unparser::Unparser;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Position {
@@ -30,13 +31,15 @@ pub fn run<T: AsRef<str>>(
     output: impl Fn(&str),
 ) -> Result<(), Error> {
     let mut parser = Parser::new(input);
+    let unparser = Unparser::new(output);
+
     client.set_up(parser.next_start_turn()?);
-    output("go");
+    unparser.output_go();
     while let Some(turn) = parser.next_turn() {
         match turn {
             Turn::Normal(turn) => {
                 let orders = client.make_turn(turn?);
-                unparser::output_orders(orders, &output);
+                unparser.output_orders(orders);
             }
             Turn::End(turn) => {
                 client.tear_down(turn?);

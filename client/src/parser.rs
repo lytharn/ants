@@ -60,8 +60,8 @@ where
     T: AsRef<str>,
     I: Iterator<Item = T>,
 {
-    pub fn new(input: I) -> Self {
-        Self { input }
+    pub fn new(input: impl IntoIterator<Item = T, IntoIter = I>) -> Self {
+        Self { input: input.into_iter() }
     }
 
     pub fn next_start_turn(&mut self) -> Result<GameConfig, Error> {
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn given_correct_input_when_next_start_turn_then_return_game_config() {
         let setup = Setup::new();
-        let mut parser = Parser::new(setup.game_config_input.iter());
+        let mut parser = Parser::new(setup.game_config_input);
 
         let config = parser.next_start_turn().unwrap();
 

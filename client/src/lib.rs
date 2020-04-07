@@ -27,7 +27,7 @@ pub trait Client {
 
 pub fn run<T: AsRef<str>>(
     client: &mut impl Client,
-    input: impl Iterator<Item = T>,
+    input: impl IntoIterator<Item = T>,
     output: impl Fn(&str),
 ) -> Result<(), Error> {
     let mut parser = Parser::new(input);

@@ -60,7 +60,7 @@ mod tests {
     use std::cell::RefCell;
     use std::iter;
 
-    fn a_start_turn_input() -> std::vec::IntoIter<&'static str> {
+    fn a_start_turn_input() -> impl Iterator<Item = &'static str> {
         vec![
             "turn 0",
             "loadtime 3000",
@@ -77,11 +77,11 @@ mod tests {
         .into_iter()
     }
 
-    fn a_normal_turn_input() -> std::vec::IntoIter<&'static str> {
-        vec!["f 6 5", "w 7 6", "a 10 9 0", "h 7 12 0", "go"].into_iter()
+    fn a_normal_turn_input(turn: &str) -> impl Iterator<Item = &str> {
+        iter::once(turn).chain(vec!["f 6 5", "w 7 6", "a 10 9 0", "h 7 12 0", "go"].into_iter())
     }
 
-    fn a_end_turn_input() -> std::vec::IntoIter<&'static str> {
+    fn a_end_turn_input() -> impl Iterator<Item = &'static str> {
         vec![
             "end",
             "players 2",
@@ -138,10 +138,8 @@ mod tests {
             ],
         };
         let input = a_start_turn_input()
-            .chain(iter::once("turn 1"))
-            .chain(a_normal_turn_input())
-            .chain(iter::once("turn 2"))
-            .chain(a_normal_turn_input())
+            .chain(a_normal_turn_input("turn 1"))
+            .chain(a_normal_turn_input("turn 2"))
             .chain(a_end_turn_input());
 
         run(&mut client, input, save_output).unwrap();
@@ -182,9 +180,7 @@ mod tests {
             callbacks: &callbacks,
             orders: vec![],
         };
-        let input = a_start_turn_input()
-            .chain(iter::once("turn 1"))
-            .chain(a_normal_turn_input().take(1));
+        let input = a_start_turn_input().chain(a_normal_turn_input("turn 1").take(2));
 
         let result = run(&mut client, input, |_| {});
 
@@ -214,8 +210,7 @@ mod tests {
         };
         let input = a_start_turn_input()
             .chain(a_end_turn_input())
-            .chain(iter::once("turn 1"))
-            .chain(a_normal_turn_input());
+            .chain(a_normal_turn_input("turn 1"));
 
         run(&mut client, input, |_| {}).unwrap();
 

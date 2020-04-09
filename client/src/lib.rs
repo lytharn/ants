@@ -60,40 +60,38 @@ mod tests {
     use std::cell::RefCell;
     use std::iter;
 
-    struct Setup {
-        config_input: Vec<&'static str>,
-        turn_input: Vec<&'static str>,
-        end_input: Vec<&'static str>,
+    fn a_start_turn_input() -> std::vec::IntoIter<&'static str> {
+        vec![
+            "turn 0",
+            "loadtime 3000",
+            "turntime 1000",
+            "rows 20",
+            "cols 30",
+            "turns 500",
+            "viewradius2 55",
+            "attackradius2 5",
+            "spawnradius2 1",
+            "player_seed 42",
+            "ready",
+        ]
+        .into_iter()
     }
 
-    impl Setup {
-        fn new() -> Self {
-            Self {
-                config_input: vec![
-                    "turn 0",
-                    "loadtime 3000",
-                    "turntime 1000",
-                    "rows 20",
-                    "cols 30",
-                    "turns 500",
-                    "viewradius2 55",
-                    "attackradius2 5",
-                    "spawnradius2 1",
-                    "player_seed 42",
-                    "ready",
-                ],
-                turn_input: vec!["f 6 5", "w 7 6", "a 10 9 0", "h 7 12 0", "go"],
-                end_input: vec![
-                    "end",
-                    "players 2",
-                    "score 11 12",
-                    "f 6 5",
-                    "d 7 8 1",
-                    "a 9 9 0",
-                    "go",
-                ],
-            }
-        }
+    fn a_normal_turn_input() -> std::vec::IntoIter<&'static str> {
+        vec!["f 6 5", "w 7 6", "a 10 9 0", "h 7 12 0", "go"].into_iter()
+    }
+
+    fn a_end_turn_input() -> std::vec::IntoIter<&'static str> {
+        vec![
+            "end",
+            "players 2",
+            "score 11 12",
+            "f 6 5",
+            "d 7 8 1",
+            "a 9 9 0",
+            "go",
+        ]
+        .into_iter()
     }
 
     #[derive(Debug)]
@@ -139,30 +137,27 @@ mod tests {
                 Order::new(56, 78, Direction::W),
             ],
         };
-        let setup = Setup::new();
-        let input = setup
-            .config_input
-            .iter()
-            .chain(iter::once(&"turn 1"))
-            .chain(setup.turn_input.iter())
-            .chain(iter::once(&"turn 2"))
-            .chain(setup.turn_input.iter())
-            .chain(setup.end_input.iter());
+        let input = a_start_turn_input()
+            .chain(iter::once("turn 1"))
+            .chain(a_normal_turn_input())
+            .chain(iter::once("turn 2"))
+            .chain(a_normal_turn_input())
+            .chain(a_end_turn_input());
 
         run(&mut client, input, save_output).unwrap();
 
         let calls = callbacks.borrow();
         let mut calls = calls.iter();
         assert_matches!(calls.next(), Some(Callback::SetUp(_)));
-        assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
+        assert_matches!(calls.next(), Some(Callback::Output(s)) if s == "go");
         assert_matches!(calls.next(), Some(Callback::MakeTurn(_)));
-        assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "o 12 34 N");
-        assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "o 56 78 W");
-        assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
+        assert_matches!(calls.next(), Some(Callback::Output(s)) if s == "o 12 34 N");
+        assert_matches!(calls.next(), Some(Callback::Output(s)) if s == "o 56 78 W");
+        assert_matches!(calls.next(), Some(Callback::Output(s)) if s == "go");
         assert_matches!(calls.next(), Some(Callback::MakeTurn(_)));
-        assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "o 12 34 N");
-        assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "o 56 78 W");
-        assert_matches!(&calls.next(), Some(Callback::Output(s)) if s == "go");
+        assert_matches!(calls.next(), Some(Callback::Output(s)) if s == "o 12 34 N");
+        assert_matches!(calls.next(), Some(Callback::Output(s)) if s == "o 56 78 W");
+        assert_matches!(calls.next(), Some(Callback::Output(s)) if s == "go");
         assert_matches!(calls.next(), Some(Callback::TearDown(_)));
     }
 
@@ -173,8 +168,7 @@ mod tests {
             callbacks: &callbacks,
             orders: vec![],
         };
-        let setup = Setup::new();
-        let input = setup.config_input.iter().take(2);
+        let input = a_start_turn_input().take(2);
 
         let result = run(&mut client, input, |_| {});
 
@@ -188,12 +182,9 @@ mod tests {
             callbacks: &callbacks,
             orders: vec![],
         };
-        let setup = Setup::new();
-        let input = setup
-            .config_input
-            .iter()
-            .chain(iter::once(&"turn 1"))
-            .chain(setup.turn_input.iter().take(1));
+        let input = a_start_turn_input()
+            .chain(iter::once("turn 1"))
+            .chain(a_normal_turn_input().take(1));
 
         let result = run(&mut client, input, |_| {});
 
@@ -207,11 +198,7 @@ mod tests {
             callbacks: &callbacks,
             orders: vec![],
         };
-        let setup = Setup::new();
-        let input = setup
-            .config_input
-            .iter()
-            .chain(setup.end_input.iter().take(2));
+        let input = a_start_turn_input().chain(a_end_turn_input().take(2));
 
         let result = run(&mut client, input, |_| {});
 
@@ -225,13 +212,10 @@ mod tests {
             callbacks: &callbacks,
             orders: vec![],
         };
-        let setup = Setup::new();
-        let input = setup
-            .config_input
-            .iter()
-            .chain(setup.end_input.iter())
-            .chain(iter::once(&"turn 1"))
-            .chain(setup.turn_input.iter());
+        let input = a_start_turn_input()
+            .chain(a_end_turn_input())
+            .chain(iter::once("turn 1"))
+            .chain(a_normal_turn_input());
 
         run(&mut client, input, |_| {}).unwrap();
 
@@ -252,11 +236,10 @@ mod tests {
             callbacks: &callbacks,
             orders: vec![],
         };
-        let setup = Setup::new();
-        let input = iter::once(&"INVALID INPUT")
-            .chain(setup.config_input.iter())
-            .chain(iter::once(&"INVALID INPUT"))
-            .chain(setup.end_input.iter());
+        let input = iter::once("INVALID INPUT")
+            .chain(a_start_turn_input())
+            .chain(iter::once("INVALID INPUT"))
+            .chain(a_end_turn_input());
 
         run(&mut client, input, |_| {}).unwrap();
 

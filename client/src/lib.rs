@@ -214,12 +214,9 @@ mod tests {
 
         run(&mut client, input, |_| {}).unwrap();
 
-        let make_turn_called = callbacks.borrow().iter().any(|c| {
-            if let Callback::MakeTurn(_) = c {
-                true
-            } else {
-                false
-            }
+        let make_turn_called = callbacks.borrow().iter().any(|c| match c {
+            Callback::MakeTurn(_) => true,
+            _ => false,
         });
         assert_eq!(make_turn_called, false);
     }

@@ -1,31 +1,93 @@
-use client::Client;
 use rand::Rng;
+
+#[derive(Debug)]
+pub struct Config {
+    pub load_time: i32,
+    pub turn_time: i32,
+    pub rows: i32,
+    pub cols: i32,
+    pub turns: i32,
+    pub view_radius2: i32,
+    pub attack_radius2: i32,
+    pub food_gathering_radius2: i32,
+    pub player_seed: i64,
+}
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct PlayerEntity {
+    pub id: i32,
+    pub pos: Position,
+}
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Position {
+    pub x: i32,
+    pub y: i32,
+}
+#[derive(Debug)]
+pub struct TurnInfo {
+    pub water: Vec<Position>, // Sent once
+    pub food: Vec<Position>,
+    pub ant_hill: Vec<PlayerEntity>,
+    pub ant: Vec<PlayerEntity>,
+    pub dead_ant: Vec<PlayerEntity>,
+}
+#[derive(Debug)]
+pub struct EndInfo {
+    pub scores: Vec<i32>,
+    pub turn_info: TurnInfo,
+}
+#[derive(Debug, Copy, Clone)]
+pub enum Direction {
+    N,
+    E,
+    S,
+    W,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Order {
+    pub pos: Position,
+    pub direction: Direction,
+}
+
+impl Order {
+    pub fn new(y: i32, x: i32, direction: Direction) -> Self {
+        Self {
+            pos: Position { y, x },
+            direction,
+        }
+    }
+}
+
+pub trait TurnTaker {
+    fn take_turn(&mut self, turn_info: TurnInfo) -> Vec<Order>;
+    fn end(&mut self, end_info: EndInfo);
+}
 
 pub struct Agent {}
 
-impl Client for Agent {
-	fn set_up(&mut self, _config: client::GameConfig) {}
-	fn make_turn(&mut self, turn_info: client::TurnInfo) -> Vec<client::Order> {
-		let mut rng = rand::thread_rng();
-		turn_info
-			.ant
-			.iter()
-			.filter(|a| a.id == 0)
-			.map(|a| {
-				let direction = match rng.gen_range(0, 3) {
-					0 => client::Direction::N,
-					1 => client::Direction::E,
-					2 => client::Direction::S,
-					_ => client::Direction::W,
-				};
-				client::Order {
-					pos: a.pos,
-					direction,
-				}
-			})
-			.collect()
-	}
-	fn tear_down(&mut self, _end_info: client::EndInfo) {}
+impl TurnTaker for Agent {
+    fn take_turn(&mut self, turn_info: TurnInfo) -> Vec<Order> {
+        let mut rng = rand::thread_rng();
+        turn_info
+            .ant
+            .iter()
+            .filter(|a| a.id == 0)
+            .map(|a| {
+                let direction = match rng.gen_range(0, 3) {
+                    0 => Direction::N,
+                    1 => Direction::E,
+                    2 => Direction::S,
+                    _ => Direction::W,
+                };
+                Order {
+                    pos: a.pos,
+                    direction,
+                }
+            })
+            .collect()
+    }
+
+    fn end(&mut self, _end_info: EndInfo) {}
 }
 
 #[cfg(test)]
@@ -34,39 +96,39 @@ extern crate assert_matches;
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
 
-	#[test]
-	fn when_make_turn_then_return_order_for_every_own_ant() {
-		let mut agent = Agent {};
-		let turn_info = client::TurnInfo {
-			water: vec![],
-			food: vec![],
-			ant_hill: vec![],
-			ant: vec![
-				client::Player {
-					id: 0,
-					pos: client::Position { row: 1, col: 2 },
-				},
-				client::Player {
-					id: 1,
-					pos: client::Position { row: 4, col: 5 },
-				},
-				client::Player {
-					id: 0,
-					pos: client::Position { row: 6, col: 7 },
-				},
-			],
-			dead_ant: vec![],
-		};
+    #[test]
+    fn when_make_turn_then_return_order_for_every_own_ant() {
+        let mut agent = Agent {};
+        let turn_info = TurnInfo {
+            water: vec![],
+            food: vec![],
+            ant_hill: vec![],
+            ant: vec![
+                PlayerEntity {
+                    id: 0,
+                    pos: Position { y: 1, x: 2 },
+                },
+                PlayerEntity {
+                    id: 1,
+                    pos: Position { y: 4, x: 5 },
+                },
+                PlayerEntity {
+                    id: 0,
+                    pos: Position { y: 6, x: 7 },
+                },
+            ],
+            dead_ant: vec![],
+        };
 
-		let mut orders = agent.make_turn(turn_info).into_iter();
-		assert_matches!(
-			orders.next(),
-			Some(client::Order {
-				pos: client::Position { row: 1, col: 2 },
-				..
-			})
-		);
-	}
+        let mut orders = agent.take_turn(turn_info).into_iter();
+        assert_matches!(
+            orders.next(),
+            Some(Order {
+                pos: Position { y: 1, x: 2 },
+                ..
+            })
+        );
+    }
 }

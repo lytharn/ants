@@ -1,30 +1,8 @@
-use super::Position;
-
-#[derive(Debug, Copy, Clone)]
-pub enum Direction {
-    N,
-    E,
-    S,
-    W,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct Order {
-    pub pos: Position,
-    pub direction: Direction,
-}
-
-impl Order {
-    pub fn new(row: i32, col: i32, direction: Direction) -> Self {
-        Self {
-            pos: Position { row, col },
-            direction,
-        }
-    }
-}
+use ai::Direction;
+use ai::Order;
 
 #[derive(Debug)]
-pub struct Unparser<F: Fn(&str)> {
+pub struct Unparser<F> {
     output: F,
 }
 
@@ -42,8 +20,8 @@ impl<F: Fn(&str)> Unparser<F> {
             (self.output)(
                 format!(
                     "o {} {} {}",
-                    o.pos.row.to_string(),
-                    o.pos.col.to_string(),
+                    o.pos.y.to_string(),
+                    o.pos.x.to_string(),
                     unparse_direction(o.direction),
                 )
                 .as_str(),
@@ -65,6 +43,7 @@ fn unparse_direction(direction: Direction) -> char {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ai::Position;
     use std::cell::RefCell;
 
     #[test]
@@ -83,19 +62,19 @@ mod tests {
     fn given_orders_when_output_orders_then_output_orders_as_a_str() {
         let orders = vec![
             Order {
-                pos: Position { row: 0, col: 0 },
+                pos: Position { y: 0, x: 0 },
                 direction: Direction::N,
             },
             Order {
-                pos: Position { row: 0, col: 1 },
+                pos: Position { y: 0, x: 1 },
                 direction: Direction::E,
             },
             Order {
-                pos: Position { row: 1, col: 0 },
+                pos: Position { y: 1, x: 0 },
                 direction: Direction::S,
             },
             Order {
-                pos: Position { row: 42, col: 32 },
+                pos: Position { y: 42, x: 32 },
                 direction: Direction::W,
             },
         ];

@@ -4,5 +4,8 @@ version = "0.1.0"
 authors = ["lytharn <lytharn@users.noreply.github.com>"]
 edition = "2018"
 
+[dependencies]
+ai = { path = "../ai" }
+
 [dev-dependencies]
 assert_matches = "1.3"

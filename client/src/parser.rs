@@ -1,4 +1,8 @@
-use super::Position;
+use ai::Config;
+use ai::EndInfo;
+use ai::PlayerEntity;
+use ai::Position;
+use ai::TurnInfo;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -8,63 +12,27 @@ pub enum Error {
 }
 
 #[derive(Debug)]
-pub struct GameConfig {
-    load_time: i32,
-    turn_time: i32,
-    rows: i32,
-    cols: i32,
-    turns: i32,
-    view_radius2: i32,
-    attack_radius2: i32,
-    food_gathering_radius2: i32,
-    player_seed: i64,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Player {
-    pub id: i32,
-    pub pos: Position,
-}
-
-#[derive(Debug)]
-pub struct TurnInfo {
-    pub water: Vec<Position>, // Sent once
-    pub food: Vec<Position>,
-    pub ant_hill: Vec<Player>,
-    pub ant: Vec<Player>,
-    pub dead_ant: Vec<Player>,
-}
-
-#[derive(Debug)]
-pub struct EndInfo {
-    scores: Vec<i32>,
-    turn_info: TurnInfo,
-}
-
-#[derive(Debug)]
 pub enum Turn {
     Normal(Result<TurnInfo, Error>),
     End(Result<EndInfo, Error>),
 }
 
-pub struct Parser<T, I>
-where
-    T: AsRef<str>,
-    I: Iterator<Item = T>,
-{
+pub struct Parser<I> {
     input: I,
 }
 
-impl<T, I> Parser<T, I>
+impl<T, I> Parser<I>
 where
     T: AsRef<str>,
     I: Iterator<Item = T>,
 {
     pub fn new(input: impl IntoIterator<Item = T, IntoIter = I>) -> Self {
-        Self { input: input.into_iter() }
+        Self {
+            input: input.into_iter(),
+        }
     }
 
-    pub fn next_start_turn(&mut self) -> Result<GameConfig, Error> {
+    pub fn next_start_turn(&mut self) -> Result<Config, Error> {
         self.input
             .by_ref()
             .skip_while(|l| l.as_ref() != "turn 0")
@@ -83,7 +51,7 @@ where
         None
     }
 
-    fn extract_game_config(&mut self) -> Result<GameConfig, Error> {
+    fn extract_game_config(&mut self) -> Result<Config, Error> {
         let mut load_time: Option<i32> = None;
         let mut turn_time: Option<i32> = None;
         let mut rows: Option<i32> = None;
@@ -113,7 +81,7 @@ where
             }
         }
 
-        Ok(GameConfig {
+        Ok(Config {
             load_time: load_time.ok_or(Error::CannotParseGameConfig)?,
             turn_time: turn_time.ok_or(Error::CannotParseGameConfig)?,
             rows: rows.ok_or(Error::CannotParseGameConfig)?,
@@ -129,9 +97,9 @@ where
     fn extract_turn_info(&mut self) -> Result<TurnInfo, Error> {
         let mut water: Vec<Position> = vec![];
         let mut food: Vec<Position> = vec![];
-        let mut ant: Vec<Player> = vec![];
-        let mut ant_hill: Vec<Player> = vec![];
-        let mut dead_ant: Vec<Player> = vec![];
+        let mut ant: Vec<PlayerEntity> = vec![];
+        let mut ant_hill: Vec<PlayerEntity> = vec![];
+        let mut dead_ant: Vec<PlayerEntity> = vec![];
 
         for line in self.input.by_ref() {
             let mut l = line.as_ref().split_whitespace();
@@ -202,10 +170,10 @@ where
     }
 }
 
-fn parse_player(row: &str, col: &str, id: &str) -> Option<Player> {
+fn parse_player(row: &str, col: &str, id: &str) -> Option<PlayerEntity> {
     let id_pos = (id.parse(), parse_position(row, col));
     match id_pos {
-        (Ok(id), Some(pos)) => Some(Player { id, pos }),
+        (Ok(id), Some(pos)) => Some(PlayerEntity { id, pos }),
         _ => None,
     }
 }
@@ -213,7 +181,7 @@ fn parse_player(row: &str, col: &str, id: &str) -> Option<Player> {
 fn parse_position(row: &str, col: &str) -> Option<Position> {
     let row_col = (row.parse().ok(), col.parse().ok());
     match row_col {
-        (Some(row), Some(col)) => Some(Position { row, col }),
+        (Some(row), Some(col)) => Some(Position { y: row, x: col }),
         _ => None,
     }
 }
@@ -372,10 +340,10 @@ mod tests {
         given_input_with_invalid_parameter_value_player_seed_when_next_start_turn_then_return_error: "player_seed",
     }
 
-    fn create_player(id: i32, row: i32, col: i32) -> Player {
-        Player {
+    fn create_player(id: i32, row: i32, col: i32) -> PlayerEntity {
+        PlayerEntity {
             id,
-            pos: Position { row, col },
+            pos: Position { y: row, x: col },
         }
     }
 
@@ -388,10 +356,10 @@ mod tests {
         let result = parser.next_turn();
 
         if let Some(Turn::Normal(Ok(turn_info))) = result {
-            assert_eq!(turn_info.food[0], Position { row: 7, col: 4 });
-            assert_eq!(turn_info.food[1], Position { row: 8, col: 5 });
-            assert_eq!(turn_info.water[0], Position { row: 7, col: 6 });
-            assert_eq!(turn_info.water[1], Position { row: 9, col: 7 });
+            assert_eq!(turn_info.food[0], Position { y: 7, x: 4 });
+            assert_eq!(turn_info.food[1], Position { y: 8, x: 5 });
+            assert_eq!(turn_info.water[0], Position { y: 7, x: 6 });
+            assert_eq!(turn_info.water[1], Position { y: 9, x: 7 });
             assert_eq!(turn_info.ant[0], create_player(0, 10, 9));
             assert_eq!(turn_info.ant[1], create_player(1, 11, 10));
             assert_eq!(turn_info.ant_hill[0], create_player(1, 7, 12));
@@ -445,10 +413,10 @@ mod tests {
             assert_eq!(end_info.scores[3], 0);
 
             let turn_info = end_info.turn_info;
-            assert_eq!(turn_info.food[0], Position { row: 7, col: 4 });
-            assert_eq!(turn_info.food[1], Position { row: 8, col: 5 });
-            assert_eq!(turn_info.water[0], Position { row: 7, col: 6 });
-            assert_eq!(turn_info.water[1], Position { row: 9, col: 7 });
+            assert_eq!(turn_info.food[0], Position { y: 7, x: 4 });
+            assert_eq!(turn_info.food[1], Position { y: 8, x: 5 });
+            assert_eq!(turn_info.water[0], Position { y: 7, x: 6 });
+            assert_eq!(turn_info.water[1], Position { y: 9, x: 7 });
             assert_eq!(turn_info.ant[0], create_player(0, 10, 9));
             assert_eq!(turn_info.ant[1], create_player(1, 11, 10));
             assert_eq!(turn_info.ant_hill[0], create_player(1, 7, 12));

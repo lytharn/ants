@@ -5,7 +5,6 @@ authors = ["lytharn <lytharn@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
-client = { path = "../client" }
 rand = "0.7.3"
 
 [dev-dependencies]

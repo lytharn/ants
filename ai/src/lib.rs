@@ -50,9 +50,9 @@ pub struct Order {
 }
 
 impl Order {
-    pub fn new(y: i32, x: i32, direction: Direction) -> Self {
+    pub fn new(x: i32, y: i32, direction: Direction) -> Self {
         Self {
-            pos: Position { y, x },
+            pos: Position { x, y },
             direction,
         }
     }
@@ -108,15 +108,15 @@ mod tests {
             ant: vec![
                 PlayerEntity {
                     id: 0,
-                    pos: Position { y: 1, x: 2 },
+                    pos: Position { x: 2, y: 1 },
                 },
                 PlayerEntity {
                     id: 1,
-                    pos: Position { y: 4, x: 5 },
+                    pos: Position { x: 5, y: 4 },
                 },
                 PlayerEntity {
                     id: 0,
-                    pos: Position { y: 6, x: 7 },
+                    pos: Position { x: 7, y: 6 },
                 },
             ],
             dead_ant: vec![],
@@ -126,7 +126,7 @@ mod tests {
         assert_matches!(
             orders.next(),
             Some(Order {
-                pos: Position { y: 1, x: 2 },
+                pos: Position { x: 2, y: 1 },
                 ..
             })
         );

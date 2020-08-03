@@ -163,8 +163,8 @@ mod tests {
         let mut turn_taker = TestTurnTaker {
             callbacks: &callbacks,
             orders: vec![
-                Order::new(12, 34, Direction::N),
-                Order::new(56, 78, Direction::W),
+                Order::new(34, 12, Direction::N),
+                Order::new(78, 56, Direction::W),
             ],
         };
         let input = a_start_turn_input()

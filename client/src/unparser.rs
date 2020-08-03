@@ -62,19 +62,19 @@ mod tests {
     fn given_orders_when_output_orders_then_output_orders_as_a_str() {
         let orders = vec![
             Order {
-                pos: Position { y: 0, x: 0 },
+                pos: Position { x: 0, y: 0 },
                 direction: Direction::N,
             },
             Order {
-                pos: Position { y: 0, x: 1 },
+                pos: Position { x: 1, y: 0 },
                 direction: Direction::E,
             },
             Order {
-                pos: Position { y: 1, x: 0 },
+                pos: Position { x: 0, y: 1 },
                 direction: Direction::S,
             },
             Order {
-                pos: Position { y: 42, x: 32 },
+                pos: Position { x: 32, y: 42 },
                 direction: Direction::W,
             },
         ];

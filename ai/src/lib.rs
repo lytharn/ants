@@ -4,8 +4,8 @@ use rand::Rng;
 pub struct Config {
     pub load_time: i32,
     pub turn_time: i32,
-    pub rows: i32,
-    pub cols: i32,
+    pub width: i32,
+    pub height: i32,
     pub turns: i32,
     pub view_radius2: i32,
     pub attack_radius2: i32,

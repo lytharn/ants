@@ -54,8 +54,8 @@ where
     fn extract_game_config(&mut self) -> Result<Config, Error> {
         let mut load_time: Option<i32> = None;
         let mut turn_time: Option<i32> = None;
-        let mut rows: Option<i32> = None;
-        let mut cols: Option<i32> = None;
+        let mut width: Option<i32> = None;
+        let mut height: Option<i32> = None;
         let mut turns: Option<i32> = None;
         let mut view_radius2: Option<i32> = None;
         let mut attack_radius2: Option<i32> = None;
@@ -69,8 +69,8 @@ where
             match (parameter_type, parameter_value) {
                 (Some("loadtime"), Some(v)) => load_time = v.parse().ok(),
                 (Some("turntime"), Some(v)) => turn_time = v.parse().ok(),
-                (Some("rows"), Some(v)) => rows = v.parse().ok(),
-                (Some("cols"), Some(v)) => cols = v.parse().ok(),
+                (Some("rows"), Some(v)) => height = v.parse().ok(),
+                (Some("cols"), Some(v)) => width = v.parse().ok(),
                 (Some("turns"), Some(v)) => turns = v.parse().ok(),
                 (Some("viewradius2"), Some(v)) => view_radius2 = v.parse().ok(),
                 (Some("attackradius2"), Some(v)) => attack_radius2 = v.parse().ok(),
@@ -84,8 +84,8 @@ where
         Ok(Config {
             load_time: load_time.ok_or(Error::CannotParseGameConfig)?,
             turn_time: turn_time.ok_or(Error::CannotParseGameConfig)?,
-            rows: rows.ok_or(Error::CannotParseGameConfig)?,
-            cols: cols.ok_or(Error::CannotParseGameConfig)?,
+            width: width.ok_or(Error::CannotParseGameConfig)?,
+            height: height.ok_or(Error::CannotParseGameConfig)?,
             turns: turns.ok_or(Error::CannotParseGameConfig)?,
             view_radius2: view_radius2.ok_or(Error::CannotParseGameConfig)?,
             attack_radius2: attack_radius2.ok_or(Error::CannotParseGameConfig)?,
@@ -203,8 +203,8 @@ mod tests {
                     "turn 0",
                     "loadtime 3000",
                     "turntime 1000",
-                    "rows 20",
-                    "cols 30",
+                    "rows 30",
+                    "cols 20",
                     "turns 500",
                     "viewradius2 55",
                     "attackradius2 5",
@@ -238,8 +238,8 @@ mod tests {
 
         assert_eq!(config.load_time, 3000);
         assert_eq!(config.turn_time, 1000);
-        assert_eq!(config.rows, 20);
-        assert_eq!(config.cols, 30);
+        assert_eq!(config.width, 20);
+        assert_eq!(config.height, 30);
         assert_eq!(config.turns, 500);
         assert_eq!(config.view_radius2, 55);
         assert_eq!(config.attack_radius2, 5);
